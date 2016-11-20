@@ -13,123 +13,55 @@ public class App : MonoBehaviour
     public int gridWidth;
     public int gridHeight;
 
-    public Material mat;
-    public Button browseButton;
+    public Material mat;// Unlit material
 
-    float th = Mathf.Sqrt(3);
-
-    Texture2D tex;
-
-    public void TestClick()
-    {
-        string path = EditorUtility.OpenFilePanel("Pick PNG file", "", "png");
-        tex = new Texture2D(9, 16);
-        tex.LoadImage(File.ReadAllBytes(path));
-        //TextureScale.Bilinear(tex, gridWidth, gridHeight);
-
-        //Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2());
-        //GameObject go = new GameObject("CoolSprite");
-        //go.AddComponent<SpriteRenderer>();
-        //go.GetComponent<SpriteRenderer>().sprite = sprite;
-
-        List<byte> bytesList = new List<byte>();
-        //for (int y = 0; y < tex.height; y++)
-        for (int y = tex.height-1; y >= 0; y--)
-        {
-            //Debug.Log(y);
-            for (int x = 0; x < tex.width; x++)
-            {
-                GameObject go = GameObject.Find("Triangle_" + x + "-" + y);
-                MeshRenderer renderer = go.GetComponent<MeshRenderer>();
-                Color color = tex.GetPixel(x, y);
-                renderer.material.color = color;
-                HSV hsv = colorToHSV(color);
-                bytesList.Add(hsv.h);
-                bytesList.Add(hsv.s);
-                bytesList.Add(hsv.v);
-            }
-        }
-        Debug.Log("new bytes: " + bytesList.Count);
-        string file = "test.img";
-        if (File.Exists(file))
-        {
-            byte[] readBytes = File.ReadAllBytes(file);
-            List<byte> readBytesList = readBytes.ToList();
-            Debug.Log("read bytes: " + readBytesList.Count);
-            bytesList.InsertRange(0, readBytesList);
-        }
-        Debug.Log("total bytes: " + bytesList.Count);
-        File.WriteAllBytes(file, bytesList.ToArray());
-    }
-
-    public void TestWrite ()
-    {
-        int x = 1;
-        int y = 1;
-        GameObject go = GameObject.Find("Triangle_" + x + "-" + y);
-        MeshRenderer renderer = go.GetComponent<MeshRenderer>();
-        Color color = renderer.material.color;
-        HSV hsv = colorToHSV(color);
-        WriteHex(hsv);
-    }
-
-    void WriteHex (HSV hsv)
-    {
-        List<byte> bytesList = new List<byte>();
-        //TODO bytesList.Add();
-        bytesList.Add(hsv.h);
-        bytesList.Add(hsv.s);
-        bytesList.Add(hsv.v);
-        File.WriteAllBytes("test.img", bytesList.ToArray());
-    }
+    float th = Mathf.Sqrt(3);// Triangle height
 
     void Start()
     {
+        // Create empty grid object to hold all triangles
         GameObject grid = new GameObject("Grid");
 
         GameObject go;
         bool flipped;
         int flipCheck = (startFlipped) ? 0 : 1;
+        // Create a triangle for each cell in the grid
         for (int y = 0; y < gridHeight; y++)
         {
             for (int x = 0; x < gridWidth; x++)
             {
+                // Find out if the new triangle should be flipped or not
                 flipped = (x + y) % 2 == flipCheck;
-                go = GetTriangle(flipped, (x == 0 && y == 0));
+                // Get a new triangle
+                go = GetTriangle(flipped);
+                // Add triangle to grid container
                 go.transform.parent = grid.transform;
+                // Place the triangle depending on it's coordinates
                 PlaceTriangle(go, x, y);
             }
         }
         // Use the placeTriangle function to center the grid on screen
         PlaceTriangle(grid, -Mathf.FloorToInt(gridWidth / 2), -Mathf.FloorToInt(gridHeight / 2), false);
-
-        //Debug.Log(System.Convert.ToString(7, 2));
     }
 
-    void PlaceTriangle (GameObject go, int cx, int cy, bool rename = true)
-    {
-        if (rename)   go.name = "Triangle_" + cx + "-" + cy;
-        float x = (verticalGrid) ? cx * th : cx;
-        float y = (verticalGrid) ? cy : cy * th;
-        go.transform.position = new Vector3(x, y, 0);
-    }
-
-    GameObject GetTriangle (bool flipped = false, bool first = false)
+    GameObject GetTriangle(bool flipped = false)
     {
         GameObject go = new GameObject();
 
+        // Create mesh renderer
         MeshRenderer renderer = go.AddComponent<MeshRenderer>();
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         renderer.receiveShadows = false;
         renderer.motionVectors = false;
         renderer.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off;
         renderer.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
-
+        // Clone the original material
         Material newMat = Instantiate(mat);
-        if (!first)
-            newMat.color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
+        // Apply a random color
+        newMat.color = new Color(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
         renderer.material = newMat;
 
+        // Create mesh, define vertices and triangles
         Mesh mesh = go.AddComponent<MeshFilter>().mesh;
         if (verticalGrid)
         {
@@ -160,6 +92,64 @@ public class App : MonoBehaviour
         return go;
     }
 
+    void PlaceTriangle(GameObject go, int cx, int cy, bool rename = true)
+    {
+        // Set the name for easy finding
+        if (rename) go.name = "Triangle_" + cx + "-" + cy;
+        float x = (verticalGrid) ? cx * th : cx;
+        float y = (verticalGrid) ? cy : cy * th;
+        go.transform.position = new Vector3(x, y, 0);
+    }
+    
+    public void BrowseAndWriteToFile ()
+    {
+        // Ask user to pick a file
+        string path = EditorUtility.OpenFilePanel("Pick PNG file", "", "png");
+        // Load image into properly sized texture
+        Texture2D tex = new Texture2D(gridWidth, gridHeight);
+        tex.LoadImage(File.ReadAllBytes(path));
+
+        //Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2());
+        //GameObject go = new GameObject("CoolSprite");
+        //go.AddComponent<SpriteRenderer>();
+        //go.GetComponent<SpriteRenderer>().sprite = sprite;
+
+        // Create empty bytes list
+        List<byte> bytesList = new List<byte>();
+        // Read every pixel in the texture
+        for (int y = tex.height-1; y >= 0; y--)
+        {
+            for (int x = 0; x < tex.width; x++)
+            {
+                // Find the correct triangle
+                GameObject go = GameObject.Find("Triangle_" + x + "-" + y);
+                // Set the triangle's material color to the pixel color
+                MeshRenderer renderer = go.GetComponent<MeshRenderer>();
+                Color color = tex.GetPixel(x, y);
+                renderer.material.color = color;
+                // Convert color to HSV
+                HSV hsv = colorToHSV(color);
+                // Add bytes to list
+                bytesList.Add(hsv.h);
+                bytesList.Add(hsv.s);
+                bytesList.Add(hsv.v);
+            }
+        }
+
+        string file = "test.img";
+
+        // If file already exists, add existing bytes at the start of the list
+        if (File.Exists(file))
+        {
+            byte[] readBytes = File.ReadAllBytes(file);
+            List<byte> readBytesList = readBytes.ToList();
+            bytesList.InsertRange(0, readBytesList);
+        }
+        // Write all bytes to file
+        File.WriteAllBytes(file, bytesList.ToArray());
+    }
+
+    // Converts a Color object to an HSV object with values from 0 to 255
     HSV colorToHSV (Color color)
     {
         float rd = color.r;
@@ -191,20 +181,22 @@ public class App : MonoBehaviour
 
 public struct HSV
 {
+    // Byte values
     public byte h;
     public byte s;
     public byte v;
-
+    // Int values
     public int hInt;
     public int sInt;
     public int vInt;
 
     public HSV (int hh, int ss, int vv)
     {
+        // Store ints
         hInt = hh;
         sInt = ss;
         vInt = vv;
-
+        // Store bytes
         h = System.Convert.ToByte(hh);
         s = System.Convert.ToByte(ss);
         v = System.Convert.ToByte(vv);
