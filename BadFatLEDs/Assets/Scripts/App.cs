@@ -12,10 +12,10 @@ public class App : MonoBehaviour
     public bool startFlipped;
     public int gridWidth;
     public int gridHeight;
-
     public Material mat;// Unlit material
 
     float th = Mathf.Sqrt(3);// Triangle height
+    Sprite displaySprite;
 
     void Start()
     {
@@ -106,13 +106,17 @@ public class App : MonoBehaviour
         // Ask user to pick a file
         string path = EditorUtility.OpenFilePanel("Pick PNG file", "", "png");
         // Load image into properly sized texture
-        Texture2D tex = new Texture2D(gridWidth, gridHeight);
+        Texture2D tex = new Texture2D(1, 1);
+        Texture2D tex2 = new Texture2D(1, 1);
         tex.LoadImage(File.ReadAllBytes(path));
+        tex2.LoadImage(File.ReadAllBytes(path));
+        TextureScale.Bilinear(tex, gridWidth, gridHeight);
 
-        //Sprite sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2());
-        //GameObject go = new GameObject("CoolSprite");
-        //go.AddComponent<SpriteRenderer>();
-        //go.GetComponent<SpriteRenderer>().sprite = sprite;
+        // Create display sprite
+        //displaySprite = Sprite.Create(tex2, new Rect(0, 0, tex2.width, tex2.height), new Vector2());
+        //GameObject displayGO = new GameObject("TextureDisplay");
+        //displayGO.AddComponent<SpriteRenderer>();
+        //displayGO.GetComponent<SpriteRenderer>().sprite = displaySprite;
 
         // Create empty bytes list
         List<byte> bytesList = new List<byte>();
